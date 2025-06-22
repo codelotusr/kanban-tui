@@ -19,6 +19,15 @@ const (
 	done
 )
 
+// Model Management
+
+var models []tea.Model
+
+const (
+	model status = iota
+	form
+)
+
 // Styles
 
 var (
@@ -31,6 +40,14 @@ type Task struct {
 	status      status
 	title       string
 	description string
+}
+
+func (t *Task) Next() {
+	if t.status == done {
+		t.status = todo
+	} else {
+		t.status++
+	}
 }
 
 func (t Task) FilterValue() string {
@@ -57,6 +74,19 @@ type Model struct {
 
 func New() *Model {
 	return &Model{}
+}
+
+func (m *Model) MoveToNext() tea.Msg {
+	selectedItem := m.lists[m.focused].SelectedItem()
+
+	if selectedItem != nil {
+		selectedTask := selectedItem.(Task)
+		m.lists[selectedTask.status].RemoveItem(m.lists[m.focused].Index())
+		selectedTask.Next()
+		m.lists[selectedTask.status].InsertItem(len(m.lists[selectedTask.status].Items())-1, list.Item(selectedTask))
+	}
+
+	return nil
 }
 
 func (m *Model) Next() {
@@ -125,6 +155,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Previous()
 		case "right", "l":
 			m.Next()
+		case "enter":
+			return m, m.MoveToNext
+		case "n":
+			models[model] = m
 		}
 	}
 
